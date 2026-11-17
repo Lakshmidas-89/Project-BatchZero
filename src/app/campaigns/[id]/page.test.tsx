@@ -34,6 +34,7 @@ describe("campaign detail route", () => {
   it("renders the assembled detail page for the requested campaign", async () => {
     const element = (await CampaignPage({
       params: Promise.resolve({ id: "miso-oat-bars" }),
+      searchParams: Promise.resolve({}),
     })) as ReactElement;
 
     render(element);
@@ -51,6 +52,7 @@ describe("campaign detail route", () => {
   it("calls notFound for an unknown campaign id", async () => {
     await CampaignPage({
       params: Promise.resolve({ id: "unknown" }),
+      searchParams: Promise.resolve({}),
     });
 
     expect(notFoundMock).toHaveBeenCalledOnce();

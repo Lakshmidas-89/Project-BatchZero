@@ -1,42 +1,66 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Flame, ShieldCheck, Users } from "lucide-react";
 
 import { Progress } from "@/components/ui/progress";
 
+const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
+
+function subscribeToReducedMotion(onChange: () => void) {
+  const query = window.matchMedia(reducedMotionQuery);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function getReducedMotionSnapshot() {
+  return window.matchMedia(reducedMotionQuery).matches;
+}
+
+function getServerReducedMotionSnapshot() {
+  return true;
+}
+
+function usePrefersReducedMotion() {
+  return useSyncExternalStore(
+    subscribeToReducedMotion,
+    getReducedMotionSnapshot,
+    getServerReducedMotionSnapshot,
+  );
+}
+
 function useCountUp(target: number) {
+  const reduceMotion = usePrefersReducedMotion();
   const [display, setDisplay] = useState(0);
+  const current = useRef(0);
 
   useEffect(() => {
-    const reduceMotion =
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reduceMotion || typeof window.requestAnimationFrame !== "function") {
-      setDisplay(target);
+    if (reduceMotion) {
+      current.current = target;
       return;
     }
 
     let frame = 0;
     const startedAt = performance.now();
+    const from = current.current;
 
     const tick = (now: number) => {
       const progress = Math.min(1, (now - startedAt) / 600);
-      setDisplay(target * (1 - Math.pow(1 - progress, 3)));
+      const next = from + (target - from) * (1 - Math.pow(1 - progress, 3));
+
+      current.current = next;
+      setDisplay(next);
 
       if (progress < 1) {
         frame = window.requestAnimationFrame(tick);
       }
     };
 
-    setDisplay(0);
     frame = window.requestAnimationFrame(tick);
-
     return () => window.cancelAnimationFrame(frame);
-  }, [target]);
+  }, [target, reduceMotion]);
 
-  return display;
+  return reduceMotion ? target : display;
 }
 
 export function FundingCard({
