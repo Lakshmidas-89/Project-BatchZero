@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { CampaignDetail } from "@/components/campaign/campaign-detail";
 import { CAMPAIGNS } from "@/lib/campaigns";
 import { getCampaignDetail } from "@/lib/campaign-details";
 
@@ -34,7 +35,7 @@ export default async function CampaignPage(
   return (
     <main id="main" className="flex-1">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <div data-testid="campaign-detail" data-id={campaign.id} />
+        <CampaignDetail campaign={campaign} detail={detail} />
       </div>
     </main>
   );

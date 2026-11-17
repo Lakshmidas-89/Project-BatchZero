@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ArrowRight,
   Clock3,
@@ -71,7 +72,10 @@ function ShopperCampaignCard({ campaign }: { campaign: Campaign }) {
   const isGoalReached = campaign.status === "Goal reached";
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-card transition duration-200 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_18px_40px_-24px_rgba(15,23,42,0.3)]">
+    <Link
+      href={`/campaigns/${campaign.id}`}
+      className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-card transition duration-200 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_18px_40px_-24px_rgba(15,23,42,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2"
+    >
       <div
         className={cn(
           "relative h-32 shrink-0 overflow-hidden border-b border-line bg-gradient-to-br",
@@ -157,14 +161,15 @@ function ShopperCampaignCard({ campaign }: { campaign: Campaign }) {
             : "Escrow protected · refund if goal missed"}
         </div>
 
-        <button
-          type="button"
-          className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand text-sm font-semibold text-white shadow-sm shadow-brand/15 transition-colors hover:bg-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2"
-        >
+        <span className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand text-sm font-semibold text-white shadow-sm shadow-brand/15 transition-colors group-hover:bg-brand/90">
           Join the batch
           <ArrowRight className="size-4" aria-hidden="true" />
-        </button>
+        </span>
+        <span className="mt-2 inline-flex items-center justify-center gap-1 text-[11px] font-semibold text-brand group-hover:underline">
+          View batch details
+          <ArrowRight className="size-3" aria-hidden="true" />
+        </span>
       </div>
-    </article>
+    </Link>
   );
 }
