@@ -6,7 +6,7 @@ const notFoundMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({ notFound: notFoundMock }));
 
-import CampaignPage, { generateStaticParams } from "./page";
+import CampaignPage, { generateMetadata, generateStaticParams } from "./page";
 
 describe("campaign detail route", () => {
   beforeEach(() => {
@@ -56,5 +56,21 @@ describe("campaign detail route", () => {
     });
 
     expect(notFoundMock).toHaveBeenCalledOnce();
+  });
+
+  it("generates metadata for known and unknown campaigns", async () => {
+    await expect(
+      generateMetadata({
+        params: Promise.resolve({ id: "miso-oat-bars" }),
+        searchParams: Promise.resolve({}),
+      }),
+    ).resolves.toEqual({ title: "Miso Morning Oat Bars · BatchZero" });
+
+    await expect(
+      generateMetadata({
+        params: Promise.resolve({ id: "unknown" }),
+        searchParams: Promise.resolve({}),
+      }),
+    ).resolves.toEqual({ title: "Batch not found · BatchZero" });
   });
 });

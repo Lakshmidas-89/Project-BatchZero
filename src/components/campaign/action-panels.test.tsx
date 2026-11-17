@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,18 +12,22 @@ const options: PollOption[] = [
   { id: "c", label: "Chili Lime", votes: 20 },
 ];
 
+function setReducedMotion(reduced: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query.includes("prefers-reduced-motion") ? reduced : false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+}
+
 describe("action panels", () => {
   beforeEach(() => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: query.includes("prefers-reduced-motion"),
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
+    setReducedMotion(true);
   });
 
   it("shows escrow funding figures, progress and urgency", () => {
@@ -131,5 +135,110 @@ describe("action panels", () => {
 
     await user.click(screen.getByRole("button", { name: "XL" }));
     expect(onSelectSize).toHaveBeenCalledExactlyOnceWith("XL");
+  });
+
+  it("keeps the funded amount stable on mount and animates later payments", () => {
+    setReducedMotion(false);
+    vi.spyOn(performance, "now").mockReturnValue(0);
+    let frame: FrameRequestCallback | undefined;
+    const requestFrame = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        frame = callback;
+        return 1;
+      });
+    const cancelFrame = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => {});
+
+    const { rerender, unmount } = render(
+      <FundingCard
+        raisedInr={638400}
+        targetInr={996000}
+        backers={214}
+        earlyBirdSpots={12}
+        label="funding"
+      />,
+    );
+
+    expect(screen.getByText("₹6,38,400")).toBeInTheDocument();
+    expect(requestFrame).not.toHaveBeenCalled();
+
+    rerender(
+      <FundingCard
+        raisedInr={639899}
+        targetInr={996000}
+        backers={215}
+        earlyBirdSpots={11}
+        label="funding"
+      />,
+    );
+    expect(requestFrame).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      frame?.(300);
+    });
+    expect(screen.getByText("₹6,39,712")).toBeInTheDocument();
+
+    act(() => {
+      frame?.(600);
+    });
+    expect(screen.getByText("₹6,39,899")).toBeInTheDocument();
+
+    unmount();
+    expect(cancelFrame).toHaveBeenCalledWith(1);
+  });
+
+  it("shows 0% funded when the target is zero", () => {
+    render(
+      <FundingCard
+        raisedInr={500}
+        targetInr={0}
+        backers={1}
+        earlyBirdSpots={1}
+        label="funding"
+      />,
+    );
+
+    expect(screen.getByText("0% funded")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
+  });
+
+  it("gives the funding card a top-level accessible heading", () => {
+    render(
+      <FundingCard
+        raisedInr={638400}
+        targetInr={996000}
+        backers={214}
+        earlyBirdSpots={12}
+        label="funding"
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Escrow funding" }),
+    ).toBeInTheDocument();
+  });
+
+  it("announces poll results under a top-level heading", () => {
+    render(
+      <VariantPoll
+        question="Which flavour?"
+        options={options}
+        selectedId="a"
+        votedOptionId={null}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Which flavour?" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Poll results" }),
+    ).toHaveAttribute("aria-live", "polite");
   });
 });

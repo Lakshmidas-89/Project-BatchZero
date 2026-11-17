@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 
 import { BrandStory } from "./brand-story";
@@ -32,7 +32,7 @@ export function CampaignDetail({
   );
   const [votedOptionId, setVotedOptionId] = useState<string | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState(
-    detail.pollOptions[0].id,
+    detail.pollOptions[0]?.id ?? "",
   );
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     detail.sizeOptions?.[2],
@@ -41,7 +41,10 @@ export function CampaignDetail({
   const [hasPaid, setHasPaid] = useState(false);
   const [comments, setComments] = useState<CoCreatorComment[]>(detail.comments);
   const [lastBackerName, setLastBackerName] = useState("Backer");
-  const [lastVariantId, setLastVariantId] = useState(detail.pollOptions[0].id);
+  const [lastVariantId, setLastVariantId] = useState(
+    detail.pollOptions[0]?.id ?? "",
+  );
+  const commentSequence = useRef(0);
 
   const pollOptions = detail.pollOptions.map((option) => ({
     ...option,
@@ -78,7 +81,7 @@ export function CampaignDetail({
     setComments((previous) => [
       ...previous,
       {
-        id: `local-${Date.now()}`,
+        id: `local-${commentSequence.current++}`,
         name: lastBackerName,
         text,
         time: "just now",

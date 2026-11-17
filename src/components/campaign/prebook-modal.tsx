@@ -20,6 +20,17 @@ export type PaymentConfirmation = {
   paymentMethod: PaymentMethod;
 };
 
+const focusableSelector = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(", ");
+
+const paymentMethods = ["UPI", "Card"] as const;
+
 export function PrebookModal({
   open,
   onClose,
@@ -45,21 +56,74 @@ export function PrebookModal({
   const [processing, setProcessing] = useState(false);
   const [receipt, setReceipt] = useState<EscrowReceipt | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const tabRefs = useRef<Record<PaymentMethod, HTMLButtonElement | null>>({
+    UPI: null,
+    Card: null,
+  });
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
       return;
     }
 
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const dialog = dialogRef.current;
+      if (!dialog) {
+        return;
+      }
+
+      const focusables = Array.from(
+        dialog.querySelectorAll<HTMLElement>(focusableSelector),
+      ).filter((element) => element.tabIndex >= 0);
+      if (focusables.length === 0) {
+        return;
+      }
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      if (!dialog.contains(active) || (!event.shiftKey && active === last)) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && (active === first || active === dialog)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === dialog) {
+        event.preventDefault();
+        first.focus();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused.current?.focus();
+    };
+  }, [open]);
 
   useEffect(
     () => () => {
@@ -78,6 +142,32 @@ export function PrebookModal({
     detail.pollOptions.find((option) => option.id === variantId)?.label ??
     variantId;
 
+  function handleTabKeyDown(
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    method: PaymentMethod,
+  ) {
+    const currentIndex = paymentMethods.indexOf(method);
+    let nextIndex = currentIndex;
+
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % paymentMethods.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex =
+        (currentIndex - 1 + paymentMethods.length) % paymentMethods.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = paymentMethods.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const next = paymentMethods[nextIndex];
+    setPaymentMethod(next);
+    tabRefs.current[next]?.focus();
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -88,6 +178,7 @@ export function PrebookModal({
     setProcessing(true);
 
     timer.current = setTimeout(() => {
+      timer.current = null;
       const confirmation: PaymentConfirmation = {
         backerName: backerName.trim(),
         email: email.trim(),
@@ -123,10 +214,12 @@ export function PrebookModal({
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="prebook-title"
-        className="relative w-full max-w-lg rounded-3xl border border-line bg-card p-5 shadow-2xl sm:p-7"
+        tabIndex={-1}
+        className="relative w-full max-w-lg rounded-3xl border border-line bg-card p-5 shadow-2xl outline-none sm:p-7"
       >
         <button
           type="button"
@@ -299,14 +392,21 @@ export function PrebookModal({
               </div>
 
               <div className="border-t border-line pt-4">
-                <div role="tablist" className="flex gap-2">
-                  {(["UPI", "Card"] as const).map((method) => (
+                <div role="tablist" aria-label="Payment method" className="flex gap-2">
+                  {paymentMethods.map((method) => (
                     <button
                       key={method}
+                      ref={(node) => {
+                        tabRefs.current[method] = node;
+                      }}
+                      id={`${method.toLowerCase()}-tab`}
                       type="button"
                       role="tab"
                       aria-selected={paymentMethod === method}
+                      aria-controls={`${method.toLowerCase()}-panel`}
+                      tabIndex={paymentMethod === method ? 0 : -1}
                       onClick={() => setPaymentMethod(method)}
+                      onKeyDown={(event) => handleTabKeyDown(event, method)}
                       className={`rounded-lg border px-4 py-1.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
                         paymentMethod === method
                           ? "border-brand bg-brand-soft text-brand"
@@ -319,7 +419,13 @@ export function PrebookModal({
                 </div>
 
                 {paymentMethod === "UPI" ? (
-                  <div className="mt-3">
+                  <div
+                    role="tabpanel"
+                    id="upi-panel"
+                    aria-labelledby="upi-tab"
+                    tabIndex={0}
+                    className="mt-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                  >
                     <label
                       htmlFor="upi-vpa"
                       className="text-xs font-semibold text-ink"
@@ -334,7 +440,13 @@ export function PrebookModal({
                     />
                   </div>
                 ) : (
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div
+                    role="tabpanel"
+                    id="card-panel"
+                    aria-labelledby="card-tab"
+                    tabIndex={0}
+                    className="mt-3 grid gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:grid-cols-2"
+                  >
                     <div className="sm:col-span-2">
                       <label
                         htmlFor="card-number"

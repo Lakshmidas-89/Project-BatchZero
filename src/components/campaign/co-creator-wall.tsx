@@ -47,7 +47,11 @@ export function CoCreatorWall({
         description="Only shoppers who have pre-booked this batch can post here. Every backer below has money in escrow."
       />
 
-      <ul className="mt-6 space-y-4">
+      <ul
+        aria-label="Verified backer notes"
+        aria-live="polite"
+        className="mt-6 space-y-4"
+      >
         {comments.map((comment) => (
           <li
             key={comment.id}

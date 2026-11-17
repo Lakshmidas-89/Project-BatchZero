@@ -31,10 +31,19 @@ function usePrefersReducedMotion() {
 
 function useCountUp(target: number) {
   const reduceMotion = usePrefersReducedMotion();
-  const [display, setDisplay] = useState(0);
-  const current = useRef(0);
+  const [display, setDisplay] = useState(target);
+  const current = useRef(target);
+  const mounted = useRef(false);
 
   useEffect(() => {
+    // SSR and the first client render must agree on the amount. Only animate
+    // subsequent target changes, so the figure never flashes back to zero.
+    if (!mounted.current) {
+      mounted.current = true;
+      current.current = target;
+      return;
+    }
+
     if (reduceMotion) {
       current.current = target;
       return;
@@ -77,10 +86,12 @@ export function FundingCard({
   label: string;
 }) {
   const displayRaised = useCountUp(raisedInr);
-  const fundedPercent = Math.round((raisedInr / targetInr) * 100);
+  const fundedPercent =
+    targetInr > 0 ? Math.round((raisedInr / targetInr) * 100) : 0;
 
   return (
     <section className="rounded-3xl border border-line bg-card p-5 shadow-sm sm:p-6">
+      <h2 className="sr-only">Escrow funding</h2>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">

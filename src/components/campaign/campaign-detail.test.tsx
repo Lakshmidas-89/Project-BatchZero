@@ -120,4 +120,72 @@ describe("campaign detail page", () => {
 
     expect(screen.getByText(/Size XL/)).toBeInTheDocument();
   });
+
+  it("renders a campaign whose detail has no poll options", () => {
+    render(
+      <CampaignDetail
+        campaign={foodCampaign}
+        detail={{ ...foodDetail, pollOptions: [] }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      foodCampaign.name,
+    );
+    expect(
+      screen.getByRole("button", { name: /Pre-Book Batch/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("announces new verified wall notes", () => {
+    render(<CampaignDetail campaign={foodCampaign} detail={foodDetail} />);
+
+    expect(
+      screen.getByRole("list", { name: "Verified backer notes" }),
+    ).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("gives rapid wall posts distinct keys", () => {
+    vi.useFakeTimers();
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<CampaignDetail campaign={foodCampaign} detail={foodDetail} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Pre-Book Batch/ }));
+    payWithCard();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    const noteField = screen.getByRole("textbox", { name: "Add your note" });
+    fireEvent.change(noteField, { target: { value: "First note" } });
+    fireEvent.click(screen.getByRole("button", { name: "Post to wall" }));
+    fireEvent.change(noteField, { target: { value: "Second note" } });
+    fireEvent.click(screen.getByRole("button", { name: "Post to wall" }));
+
+    expect(screen.getByText("First note")).toBeInTheDocument();
+    expect(screen.getByText("Second note")).toBeInTheDocument();
+    expect(errors.mock.calls.flat().join(" ")).not.toContain("same key");
+  });
+
+  it("accepts repeat payments and floors early-bird spots at zero", () => {
+    vi.useFakeTimers();
+    render(
+      <CampaignDetail
+        campaign={foodCampaign}
+        detail={{ ...foodDetail, earlyBirdSpots: 1 }}
+      />,
+    );
+
+    const cta = screen.getByRole("button", { name: /Pre-Book Batch/ });
+    fireEvent.click(cta);
+    payWithCard();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    fireEvent.click(cta);
+    payWithCard();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    const spots = screen.getByText("Early-Bird Spots Left").parentElement!;
+    expect(spots).toHaveTextContent("0");
+    expect(screen.getByText("216 backers")).toBeInTheDocument();
+    expect(screen.getByText("₹6,41,398")).toBeInTheDocument();
+  });
 });

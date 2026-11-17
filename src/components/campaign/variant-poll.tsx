@@ -30,7 +30,7 @@ export function VariantPoll({
     <section className="rounded-3xl border border-line bg-card p-5 sm:p-6">
       <div className="flex items-center gap-2">
         <BarChart3 className="size-4 text-brand" aria-hidden="true" />
-        <h3 className="text-sm font-bold tracking-tight text-ink">{question}</h3>
+        <h2 className="text-sm font-bold tracking-tight text-ink">{question}</h2>
       </div>
       <p className="mt-1 text-[11px] text-muted">
         {votedOptionId
@@ -38,7 +38,12 @@ export function VariantPoll({
           : "Vote once. Your pick sets what we make first."}
       </p>
 
-      <div className="mt-4 space-y-3">
+      <div
+        role="group"
+        aria-label="Poll results"
+        aria-live="polite"
+        className="mt-4 space-y-3"
+      >
         {options.map((option) => {
           const percentage = percentages[option.id] ?? 0;
           const isSelected = selectedId === option.id;

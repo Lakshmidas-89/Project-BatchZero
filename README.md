@@ -22,7 +22,7 @@ Role and category are held in a global React context, so switching views or filt
 Each shopper card opens `/campaigns/[id]` (for example `/campaigns/miso-oat-bars`). The page is a server route that prerenders all three known batches and hands its data to one client island:
 
 - **Left 60%** — a CSS product illustration, the brand story and specs, and a co-creator wall where paying backers carry a green "Verified Backer" badge.
-- **Right 40%** — a sticky escrow card with a live raised/target figure and animated emerald bar, a one-vote-per-session variant poll (plus XS–XXL sizes for fashion), and the `Pre-Book Batch #1 • ₹[token] Token` CTA.
+- **Right 40%** — a sticky escrow card with a live raised/target figure and animated emerald bar, a one-vote-per-session variant poll (plus XS–XXL sizes for fashion), and the `Pre-Book Batch #N • ₹[token] Token` CTA.
 
 The CTA opens a checkout modal with backer details, a UPI/Card tab choice, and a 1.5-second simulated payment. On success the escrow total, backer count, and early-bird spots update in place, the wall unlocks for a verified note, and a downloadable escrow receipt appears. **All payments and receipts are simulated test mode — no money moves and no real payment is processed.**
 

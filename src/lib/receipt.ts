@@ -65,5 +65,8 @@ export function downloadReceipt(receipt: EscrowReceipt): void {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+
+  // Firefox can cancel a download when its blob URL is revoked in the same
+  // task as the click, so release it on the next tick instead.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
