@@ -57,6 +57,7 @@ export function PrebookModal({
   const [receipt, setReceipt] = useState<EscrowReceipt | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const receiptHeadingRef = useRef<HTMLHeadingElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   const tabRefs = useRef<Record<PaymentMethod, HTMLButtonElement | null>>({
@@ -133,6 +134,14 @@ export function PrebookModal({
     },
     [],
   );
+
+  useEffect(() => {
+    // The submit button unmounts when the form is replaced by the receipt, so
+    // move focus to the new heading instead of letting it fall to the dialog.
+    if (receipt) {
+      receiptHeadingRef.current?.focus();
+    }
+  }, [receipt]);
 
   if (!open) {
     return null;
@@ -239,8 +248,10 @@ export function PrebookModal({
               </span>
             </div>
             <h2
+              ref={receiptHeadingRef}
               id="prebook-title"
-              className="mt-3 text-2xl font-bold tracking-tight text-ink"
+              tabIndex={-1}
+              className="mt-3 text-2xl font-bold tracking-tight text-ink outline-none"
             >
               ESCROW RECEIPT
             </h2>
@@ -423,8 +434,7 @@ export function PrebookModal({
                     role="tabpanel"
                     id="upi-panel"
                     aria-labelledby="upi-tab"
-                    tabIndex={0}
-                    className="mt-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                    className="mt-3"
                   >
                     <label
                       htmlFor="upi-vpa"
@@ -444,8 +454,7 @@ export function PrebookModal({
                     role="tabpanel"
                     id="card-panel"
                     aria-labelledby="card-tab"
-                    tabIndex={0}
-                    className="mt-3 grid gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:grid-cols-2"
+                    className="mt-3 grid gap-3 sm:grid-cols-2"
                   >
                     <div className="sm:col-span-2">
                       <label

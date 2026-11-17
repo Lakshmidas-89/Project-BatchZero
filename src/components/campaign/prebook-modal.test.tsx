@@ -489,4 +489,48 @@ describe("pre-book modal payment coverage", () => {
 
     expect(downloadedName).toMatch(/^BZ-[A-Z0-9]{8}\.txt$/);
   });
+
+  it("moves focus to the receipt heading when the form swaps to the receipt", () => {
+    vi.useFakeTimers();
+    render(
+      <PrebookModal
+        open
+        onClose={vi.fn()}
+        campaign={foodCampaign}
+        detail={foodDetail}
+        selectedVariantId="miso-sesame"
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    startPayment();
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("heading", { name: "ESCROW RECEIPT" }),
+    );
+  });
+
+  it("does not make tabpanels redundant tab stops", () => {
+    render(
+      <PrebookModal
+        open
+        onClose={vi.fn()}
+        campaign={foodCampaign}
+        detail={foodDetail}
+        selectedVariantId="miso-sesame"
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("tabpanel", { name: "UPI" })).not.toHaveAttribute(
+      "tabindex",
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Card" }));
+    expect(screen.getByRole("tabpanel", { name: "Card" })).not.toHaveAttribute(
+      "tabindex",
+    );
+  });
 });
